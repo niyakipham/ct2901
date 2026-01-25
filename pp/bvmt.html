@@ -943,10 +943,44 @@
         .thumbnails-panel::-webkit-scrollbar-thumb:hover {
             background: var(--highlight-color-1);
         }
+
+        /* Video Overlay for Intro */
+        .video-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: black;
+            z-index: 9999;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+
+        .video-overlay.active {
+            display: flex;
+            opacity: 1;
+        }
+
+        .video-overlay video {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
     </style>
 </head>
 
 <body>
+
+    <!-- Video Overlay for Intro -->
+    <div class="video-overlay" id="videoOverlay">
+        <video id="introVideo" preload="auto">
+            <source src="intro.mp4" type="video/mp4">
+        </video>
+    </div>
 
     <!-- Progress Bar -->
     <div class="progress-container">
@@ -1741,12 +1775,15 @@
             const autoplayBtn = document.getElementById('autoplayBtn');
             const thumbnailsToggle = document.getElementById('thumbnailsToggle');
             const thumbnailsPanel = document.getElementById('thumbnailsPanel');
+            const videoOverlay = document.getElementById('videoOverlay');
+            const introVideo = document.getElementById('introVideo');
 
             let currentSlide = 0;
             const totalSlides = slides.length;
             let autoplayInterval = null;
             let isAutoPlaying = false;
             const AUTOPLAY_DELAY = 5000; // 5 seconds
+            let videoPlayed = false; // Track if intro video has been played
 
             /**
              * Initializes the presentation by setting the first slide as active.
@@ -1825,6 +1862,13 @@
                     slideIndex = totalSlides - 1;
                 }
 
+                // Check if transitioning from slide 1 (index 0) to slide 2 (index 1)
+                // and video hasn't been played yet
+                if (currentSlide === 0 && slideIndex === 1 && !videoPlayed) {
+                    playIntroVideo(slideIndex);
+                    return; // Don't proceed with slide change yet
+                }
+
                 currentSlide = slideIndex;
                 const offset = -currentSlide * 100;
                 slideWrapper.style.transform = `translateX(${offset}%)`;
@@ -1832,6 +1876,34 @@
                 updateUI();
                 updateThumbnails();
                 updateProgressBar();
+            }
+
+            /**
+             * Plays the intro video and transitions to target slide after completion
+             */
+            function playIntroVideo(targetSlideIndex) {
+                videoPlayed = true; // Mark video as played
+
+                // Show video overlay
+                videoOverlay.classList.add('active');
+
+                // Reset and play video
+                introVideo.currentTime = 0;
+                introVideo.play();
+
+                // When video ends, hide overlay and go to target slide
+                introVideo.onended = function () {
+                    videoOverlay.classList.remove('active');
+
+                    // Now actually navigate to slide 2
+                    currentSlide = targetSlideIndex;
+                    const offset = -currentSlide * 100;
+                    slideWrapper.style.transform = `translateX(${offset}%)`;
+
+                    updateUI();
+                    updateThumbnails();
+                    updateProgressBar();
+                };
             }
 
             /**
